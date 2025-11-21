@@ -49,4 +49,47 @@ app.get('/healthz', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
+import fs from 'fs'
+
+// ----- Phones endpoint ----- //
+app.get('/phones', (req, res) => {
+  try {
+    const raw = fs.readFileSync('android_devices.json', 'utf8')
+    const data = JSON.parse(raw)
+
+    const { brand, search } = req.query
+
+    if (brand) {
+      const b = (brand as string).toLowerCase()
+      const filtered = Object.fromEntries(
+        Object.entries(data).filter(([k]) => k.toLowerCase() === b)
+      )
+      return res.json(filtered)
+    }
+
+    if (search) {
+      const s = (search as string).toLowerCase()
+      const out: any[] = []
+
+      for (const brand in data) {
+        for (const phone of data[brand]) {
+          if (
+            phone.model?.toLowerCase().includes(s) ||
+            phone.codename?.toLowerCase().includes(s)
+          ) {
+            out.push({ brand, ...phone })
+          }
+        }
+      }
+
+      return res.json(out)
+    }
+
+    res.json(data)
+  } catch (error) {
+    res.status(500).json({ error: 'Error reading phone database' })
+  }
+})
+
+
 export default app
